@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<!--
+
+Copyright (c) 2023, 
+
+/WELLSampaio
+<github.com/wsampaio>
+<linkedin.com/in/wellsampaio>
+
+Este trabalho está licenciado sob a Licença Atribuição 4.0 Internacional 
+Creative Commons. Para visualizar uma cópia desta licença, visite 
+http://creativecommons.org/licenses/by/4.0/ ou mande uma carta para Creative 
+Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+-->
+<html lang="pt-br">
+  <head>
+	<meta charset="UTF-8">
+	<meta name = "viewport" 
+	  content = "width=device-width,initial-scale=1,shrink-to-fit=no">
+		
+	<link rel="stylesheet" href="/javaWebFramework/manager/plugins/picnic.min.css">
+	<link rel="stylesheet" href="/javaWebFramework/manager/plugins/select2/css/select2.min.css"/>
+
+	<script src="/javaWebFramework/manager/plugins/jquery.min.js"></script>
+	<script src="/javaWebFramework/manager/plugins/select2/js/select2.min.js"></script>
+
+	<style>
+	  * {
+		font-family: monospace;
+	  }
+
+	  #loadBlock {
+		display: none;
+
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+
+		text-align:center; /* Align center inline elements */
+		font: 0/0 a;
+
+		color: #fff;
+		background-color: rgb(0, 0, 0, 0.5);
+		z-index: 9999;
+		user-select: none;
+	  }
+
+	  #loadBlock:before {
+		content: ' ';
+		display: inline-block;
+		vertical-align: middle;
+		height: 100%;
+	  }
+
+	  #loadBlock img {
+		content:url("/javaWebFramework/manager/images/loading.gif");
+		vertical-align: middle;
+		display: inline-block;
+		width: 250px;
+	  }
+
+	  input[type=checkbox]{
+		opacity: 1;
+		width: 1em;
+		height: 1em;
+		position: initial;
+	  }
+
+	</style>
+  </head>
+  <body>
+	<div id='loadBlock'><img></div>
+	<div class='container'>
+	  <div class='HEAD'></div>
+	  <div class='BODY'>
+		<div class='form'>
+		  <div class='HEAD'></div>
+		  <div class='BODY'></div>
+		  <div class='FOOT'></div>
+		</div>
+	  </div>
+	  <div class='FOOT'></div>
+	</div>
+
+	<script>
+	  $(function(){
+
+		const urlParams = new URLSearchParams(window.location.search);
+
+		params = {
+		  "schema": urlParams.get('schema'),
+		  "table": urlParams.get('table'),
+		  "qry": urlParams.get('qry'),
+		  "params": urlParams.get('params')
+		};
+
+		loadForm(params, ".form");
+
+	  });
+
+	  // variaveis globais
+
+	  let params;
+	  let fKeys = [];
+
+
+
+	  // metodos
+
+	  // funcao para classificar as colunas
+	  function nameFieldsSorted(objRow){
+		var fieldsIndex = [];
+		//var objRow = objJSON[urlParams["table"]][0];
+
+		for(var key in objRow) {
+		  if(objRow.hasOwnProperty(key)) {
+			fieldsIndex.push(key);
+		  }
+		}
+
+		return fieldsIndex.sort(function(a, b) {
+		  return objRow[a].fieldIndex - objRow[b].fieldIndex;
+		});
+	  }
+	  // FIM: nameFieldsSorted
+
+	  $.fn.serializeObject = function(){
+		var o = {};
+		var a = this.serializeArray();
+		$.each(a, function() {
+		  if (o[this.name]) {
+			if (!o[this.name].push) {
+			  o[this.name] = [o[this.name]];
+			}
+			o[this.name].push(this.value || '');
+		  } else {
+			o[this.name] = this.value || '';
+		  }
+		});
+
+		return o;
+	  };
+
+	  let loadForm = function(urlParams, objContainer){
+
+		let objJSON = {};
+
+		let schema = urlParams["schema"];
+		let table = urlParams["table"];
+		let qry = urlParams["qry"];
+		let params = urlParams["params"];
+
+		let url = "/javaWebFramework/manager/models/json.jsp" +
+		  "?schema=" + schema + 
+		  "&table=" + table + 
+		  "&qry=" + qry;
+
+		if(urlParams["params"] !== null){
+					url+="&params=" + params;
+				}
+
+		$("#loadBlock").css("display", "block");
+
+		$.getJSON( url, function( data ) {
+		  objJSON = data;
+		})
+		  .done( function() {
+			//
+		  })
+		  .fail(function() {
+			//alert( "error" );
+		  })
+		  .always(function() {
+			//alert( "finished" );
+
+			let container = $(objContainer + " > .BODY");
+			container.html("");
+
+			$(document).prop("title", "FORM " + schema + "." + table);
+
+			container
+			  .append(
+				"<form class='well form-inline' id='" + table + "Frm'>" +
+				  "<table width='100%'></table>" +
+				"</form>"
+			  );
+
+			obj = objJSON[table][0];
+			drawFields(obj, table + "Frm");
+
+			// botoes de edicao
+			$(objContainer + " .FOOT")
+			  .append("<button class='deletar error'>deletar</button>")
+			  .append("<button class='copiar'>copiar</button>")
+			  .append("<button class='salvar success'>salvar</button>")
+			  //.append("<button class='fechar'>fechar</button>")
+			;
+
+			$(".copiar").on("click", function(event){
+			  event.preventDefault();
+
+			  $(".icon-edit").each(function(){
+				$(this).click();
+			  });
+
+			  $("input:first").val(0);
+							
+			  //$(this).css("display", "none");
+
+			});
+
+			$(".fechar").on("click", function(event){
+			  //event.preventDefault();
+			  alert("")
+			  let customWindow = window.open('', '_blank', '');
+			  customWindow.close();
+			});
+
+			$(".salvar").on("click", function(event){
+			  event.preventDefault();
+
+			  $("#loadBlock").css("display", "block");
+
+			  let url = "/javaWebFramework/manager/models/save.jsp" +
+				"?schema=" + schema + 
+				"&table=" + table + 
+				"&qry=" + qry;
+
+			  if(urlParams["params"] !== null)
+				url+="&params=" + params;
+
+			  $.ajax({
+				url: url,
+				type:"POST",
+				contentType:"application/json; charset=utf-8",
+				dataType:"JSON",
+				data: JSON.stringify($("#" + table + "Frm").serializeObject()),
+				success: function(data){
+				  console.log("salvar: sucesso");
+				  console.log(data);
+				  drawFields(data[table][0], table + "Frm");
+				  loadCombos(fKeys);
+				  $("#loadBlock").css("display", "none");
+				},
+				error: function(jqXHR, textStatus){
+				  console.log("ERRO");
+				  for (str of Object.keys(jqXHR))
+					console.log(str + ": " + jqXHR[str]);
+				}
+			  }).fail(function(){
+				//console.log("salvar: fail");
+			  });
+			});
+
+			$(".deletar").on("click", function(event){
+			  event.preventDefault();
+
+
+			  let deletar = false;
+
+			  deletar = confirm("Você deseja REALMENTE\ndeletar este registro?");
+
+			  if (!deletar)
+				return;
+
+			  $("#loadBlock").css("display", "block");
+
+			  let url = "/javaWebFramework/manager/models/save.jsp" +
+				"?schema=" + schema + 
+				"&table=" + table + 
+				"&qry=" + qry;
+
+			  if(urlParams["params"] !== null)
+				url+="&params=" + params;
+
+			  $.ajax({
+				url: url,
+				type:"DELETE",
+				contentType:"application/json; charset=utf-8",
+				dataType:"JSON",
+				data: JSON.stringify($("#" + table + "Frm").serializeObject()),
+				success: function(data){
+				  console.log("salvar: sucesso");
+				  console.log(data);
+				  drawFields(data[table][0], table + "Frm");
+				  loadCombos(fKeys);
+				  alert("Registro deletado!");
+				  $("#loadBlock").css("display", "none");
+				},
+				error: function(jqXHR, textStatus){
+				  console.log("ERRO");
+				  for (str of Object.keys(jqXHR))
+					console.log(str + ": " + jqXHR[str]);
+				}
+			  }).fail(function(){
+				//console.log("salvar: fail");
+			  });
+			});
+
+
+			$(".link-registro").on("click", function(event){
+			  event.preventDefault();
+			  window.open("/javaWebFramework/manager/models/form.html" + $(this).attr("href"));
+			});
+
+			$("#loadBlock").css("display", "none");
+
+			// carrega combos
+			loadCombos(fKeys);
+		  });
+
+		};
+
+	  let drawFields = function(obj, formContainerStr){
+
+		let formContainer = $("#" + formContainerStr + " table");
+		formContainer.html("");
+
+		for(field of nameFieldsSorted(obj)){
+
+		  formContainer
+			.append(
+			  "<tr>" +
+				"<th class='field-name'>" + 
+				  obj[field].fieldName + ":</th>" +
+				"<td>" + 
+				  "<div class='input-container' id='" + obj[field].fieldName + "'>" +
+					"<div class='field-type'>" + 
+					  obj[field].fieldType + 
+					"</div>" +
+					"<div class='lbl'>" +
+					  "<img class='icon-edit'> &nbsp; <span></span>" + 
+					"</div>" +
+					"<div class='input'></div>" +
+				  "</div>" +
+				"</td>" +
+			  "</tr>"
+			);
+
+		  switch(obj[field].fieldType){
+			case "VARCHAR":
+			case "text":
+			case "TEXT":
+			  if (obj[field].fieldName === undefined)
+				obj[field].fieldValue = "";
+			  $("#" + obj[field].fieldName + ".input-container .lbl span")
+				.append(obj[field].fieldValue);
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<input type='text' " + 
+					"name='" + obj[field].fieldName + "' " + 
+					"value='" + obj[field].fieldValue + "'>"
+				);
+			  break;
+
+			case "float":
+			case "serial":
+			case "int4":
+			case "integer":
+			case "INTEGER":
+			case "REAL":
+			case "LONG":
+			  if (obj[field].fieldValue === undefined)
+				obj[field].fieldValue = 0;
+			  $("#" + obj[field].fieldName + ".input-container .lbl span")
+				.append(obj[field].fieldValue);
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<input type='number' " + 
+					"name='" + obj[field].fieldName + "' " + 
+					"value='" + obj[field].fieldValue + "'>"
+				);
+			  break;
+
+			case "BIGTEXT":
+			case "MEMO":
+			  if (obj[field].fieldValue === undefined)
+				obj[field].fieldValue = "";
+			  $("#" + obj[field].fieldName + ".input-container .lbl span")
+				.append(
+				  "<br>" + obj[field].fieldValue.replaceAll("\\n", "<br>")
+				);
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<textarea name='" + obj[field].fieldName + "'>" + 
+					obj[field].fieldValue.replaceAll("\\n", "\n") + 
+				  "</textarea>"
+				);
+			  break;
+
+			case "bool":
+			case "BOOLEAN":
+			  if (obj[field].fieldValue === undefined)
+				obj[field].fieldValue = false;
+			  $("#" + obj[field].fieldName + ".input-container .lbl span")
+				.append(
+				  "<input type='checkbox' disabled" + 
+					( (obj[field].fieldValue === "true")?" checked":"" ) + 
+				  ">"
+				);
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<label>" +
+					"<input type='checkbox' " +
+					  "name='" + obj[field].fieldName + "' value='true'" + 
+					  ( (obj[field].fieldValue === "true")?" checked":"" ) + 
+					">" +
+				  "</label>"
+				);
+			  break;
+
+			case "timestamp":
+			case "TIMESTAMP":
+			case "LOCALDATETIME":
+			  if (obj[field].fieldName === undefined)
+				obj[field].fieldValue = "";
+			  $("#" + obj[field].fieldName + ".input-container .lbl span")
+				.append(obj[field].fieldValue);
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<input type='datetime-local' " + 
+					"name='" + obj[field].fieldName + "' " + 
+					"value='" + obj[field].fieldValue + "'>"
+				);
+			  break;
+
+			case "link":
+			  if (obj[field].fieldValue === undefined)
+				obj[field].fieldValue = "";
+			  if (obj[field].fieldValue.length > 0){
+				$("#" + obj[field].fieldName + ".input-container .lbl span")
+				  .append(
+					"<a href='" + obj[field].fieldValue + "' target='_blank'>abrir</a>"
+				  );
+			  } else {
+				$("#" + obj[field].fieldName + ".input-container .lbl span")
+				  .append("em branco");
+			  }
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<input type='text' " + 
+					"name='" + obj[field].fieldName + "' " + 
+					"value='" + obj[field].fieldValue + "'>"
+				);
+			  break;
+
+
+
+
+
+			default:
+			  if (obj[field].fieldValue === undefined)
+				obj[field].fieldValue = "";
+			  $("#" + obj[field].fieldName + ".input-container .lbl span")
+				.html("")
+				.append(
+				  "<strong>tipo não listado FE</strong>: " + 
+				  obj[field].fieldType + " - " +
+				  obj[field].fieldValue
+				);
+
+			  $("#" + obj[field].fieldName + ".input-container .input")
+				.append(
+				  "<input type='text' " + 
+					"name='" + obj[field].fieldName + "' " + 
+					"value='" + obj[field].fieldValue + "'>"
+				);
+			  break;
+
+		  }
+
+		  if (obj[field].fKey !== null){
+			let fk = obj[field].fKey;
+			fk.fkField = obj[field].fieldName;
+			fk.fkValue = obj[field].fieldValue;
+			fKeys.push(fk);
+		  }
+		  //console.log(obj[field].fKey);
+					
+		}
+
+		// esconde campos
+		$(".input").css("display", "none");
+		$(".field-type").css("display", "none");
+
+		// botao de edicao
+		$(".icon-edit")
+			.attr("src", "/javaWebFramework/manager/images/edit_icon.png")
+			.css("width", "15px")
+			.css("margin-right", "15px")
+			.on("click", function(){
+						$(this).closest(".input-container")
+							.find(".lbl")
+							.css("display", "none");
+						$(this).closest(".input-container")
+							.find(".input")
+							.css("display", "block")
+							.focus();
+					});
+
+	  };
+
+	  let loadCombos = function(fKeys, counter=0){
+		if (fKeys.length > 0){
+		  let paramsCombo = {
+			"schema": params["schema"],
+			"table": fKeys[counter].pkTable,
+			"qry": "getIndexList",
+			"selected":fKeys[counter].fkValue
+		  };
+
+		  let urlCombo = "/javaWebFramework/manager/models/jsonCombo.jsp" +
+			"?schema=" + params["schema"] +
+			"&table=" + fKeys[counter].pkTable +
+			"&qry=getIndexList";
+
+		  if(paramsCombo["params"] !== null)
+			if(paramsCombo["params"] !== undefined)
+			  url+="&params=" + paramsCombo["params"];
+
+		  let objJSON = {};
+
+		  let table = paramsCombo["table"];
+
+		  $("#loadBlock").css("display", "block");
+
+		  $.getJSON( urlCombo, function( data ) {
+			objJSON = data;
+		  })
+			.done( function() {
+			  //
+			})
+			.fail(function() {
+			  //alert( "error" );
+			})
+			.always(function() {
+			  //alert( "finished" );
+
+			  let container = $("#" + fKeys[counter].fkField);
+
+			  container.find(".lbl span, .input").html("");
+
+			  container.find(".input")
+				.append(
+				  "<select class='js-example-basic-single' name='" +
+					  container.attr("id") + "'>" +
+					"<option value='0'>Selecione:</option>" +
+				  "</select>"
+				);
+
+			  let pkField = "";
+
+			  for(obj of objJSON[table])
+				container.find("select")
+				  .append(
+					"<option value='" + obj.value + "'>" +
+					  obj.option +
+					"</option>"
+				  );
+
+			  //container.find("select").select2();
+			  container.find("select")
+				.val(paramsCombo["selected"]).change()
+				.css("width", "100%");
+			  container.find(".lbl span").html(
+				container.find(".input select option:selected").text()
+			  );
+
+			  $(".link-registro").on("click", function(event){
+				event.preventDefault();
+				window.open("/javaWebFramework/manager/models/form.html" + $(this).attr("href"));
+			  });
+
+			  if (++counter < fKeys.length)
+				loadCombos(fKeys, counter);
+
+			  $(".js-example-basic-single").select2();
+
+			  $("#loadBlock").css("display", "none");
+
+			});
+		}
+	  };
+
+	</script>
+  </body>
+</html>

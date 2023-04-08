@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!--
+
+Copyright (c) 2023, 
+
+/WELLSampaio
+<github.com/wsampaio>
+<linkedin.com/in/wellsampaio>
+
+Este trabalho está licenciado sob a Licença Atribuição 4.0 Internacional 
+Creative Commons. Para visualizar uma cópia desta licença, visite 
+http://creativecommons.org/licenses/by/4.0/ ou mande uma carta para Creative 
+Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+-->
+<html lang="pt-br">
+  <head>
+	<meta charset="UTF-8">
+	<meta name = "viewport" 
+	  content = "width=device-width,initial-scale=1,shrink-to-fit=no">
+	
+	<title>lista de modelos</title>
+
+	<link rel="stylesheet" href="/javaWebFramework/manager/plugins/picnic.min.css">
+	<script src="/javaWebFramework/manager/plugins/jquery.min.js"></script>
+
+	<style>
+	  * {
+		font-family: monospace;
+	  }
+	</style>
+  </head>
+  <body>
+	<div class='container'>
+	  <div class='HEAD'></div>
+	  <div class='BODY'></div>
+	  <div class='FOOTER'></div>
+	</div>
+
+	<script>
+
+	  $(function(){
+		loadListaTabelas();
+	  });
+
+	  // VARIAVEIS
+
+	  let tabelas = {};
+
+	  // METODOS
+
+	  let loadListaTabelas = function(){
+
+		let url = "/javaWebFramework/manager/models/listaTabelas.jsp";
+
+		$("#loadBlock").css("display", "block");
+
+		$.getJSON( url, function( data ) {
+		  tabelas = data;
+		})
+		  .done( function() {
+			
+		  })
+		  .fail(function(xhr, ajaxOptions, thrownError) {
+			console.log( "error: " + thrownError );
+			//alert( "error" );
+		  })
+		  .always(function() {
+			preencheLista();
+			$("#loadBlock").css("display", "none");
+		  });
+
+	  };
+
+	  let preencheLista = function(){
+		
+		var tabelasLength = Object.keys(tabelas).length;
+
+		for (i=0;i<tabelasLength;i++){
+		  var schema = Object.keys(tabelas)[i];
+
+		  $(".container .BODY")
+			.html("")
+			.append(
+			  "<ul class='schema' id='" + schema + "'>" +
+				"<li class='schema-name'>" +
+				  schema + 
+				"</li>" +
+				"<ol class='table-names'></ol>" +
+			  "</ul>"
+			);
+
+		  for(j=0;j<tabelas[schema].length;j++){
+			$("#" + schema + " .table-names")
+			  .append(
+				"<li><a class='link-lista' " +
+				  "href='" +
+					"?schema=" + schema + 
+					"&table=" + tabelas[schema][j] + 
+					"&qry=" + "getIndexList" + 
+					"'"+
+				  ">" + 
+				  tabelas[schema][j] + 
+				"</a></li>"
+			  );
+		  }
+		}
+
+		$(".link-lista").on("click", function(event){
+		  event.preventDefault();
+		  window.open("/javaWebFramework/manager/models/list.html" + $(this).attr("href"));
+		});
+	  };
+
+	</script>
+  </body>
+<html>

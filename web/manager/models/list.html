@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<!--
+
+Copyright (c) 2023, 
+
+/WELLSampaio
+<github.com/wsampaio>
+<linkedin.com/in/wellsampaio>
+
+Este trabalho está licenciado sob a Licença Atribuição 4.0 Internacional 
+Creative Commons. Para visualizar uma cópia desta licença, visite 
+http://creativecommons.org/licenses/by/4.0/ ou mande uma carta para Creative 
+Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+-->
+<html lang="pt-br">
+  <head>
+	<meta charset="UTF-8">
+	<meta name = "viewport" 
+	  content = "width=device-width,initial-scale=1,shrink-to-fit=no">
+
+	<title>list.html</title>
+
+	<link rel="stylesheet" href="/javaWebFramework/manager/plugins/picnic.min.css">
+	<script src="/javaWebFramework/manager/plugins/jquery.min.js"></script>
+
+	<style>
+	  * {
+		font-family: monospace;
+	  }
+
+	  #loadBlock {
+		display: none;
+
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+
+		text-align:center; /* Align center inline elements */
+		font: 0/0 a;
+
+		color: #fff;
+		background-color: rgb(0, 0, 0, 0.5);
+		z-index: 999999;
+		user-select: none;
+	  }
+
+	  #loadBlock:before {
+		content: ' ';
+		display: inline-block;
+		vertical-align: middle;
+		height: 100%;
+	  }
+
+	  #loadBlock img {
+		content:url("/javaWebFramework/manager/images/loading.gif");
+		vertical-align: middle;
+		display: inline-block;
+		width: 250px;
+	  }
+
+	  .container > .HEAD {
+		position: fixed;
+		top: 0;
+		left: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		width: 100%;
+		height: 50px;
+		z-index: 9999;
+	  }
+
+	  .container > .FOOT {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		width: 100%;
+		height: 50px;
+		z-index: 9999;
+	  }
+
+	  .container > .BODY {
+		padding-top: 50px;
+		padding-bottom: 100px;
+	  }
+
+	  .icon-container {
+		display: inline-block;
+	  }
+
+	  .icon {
+		content:url("/javaWebFramework/manager/images/caret-square-white.png");
+		height: 15px;
+		float:left;
+	  }
+
+	  .icon.open {
+		transform: rotate(90deg);
+	  }
+
+	  .icon.close {
+		content:url("");
+		transform: rotate(-90deg);
+	  }
+
+	  .colHide {display:none;}
+
+	  .cabecalho-fixo th{
+		position: sticky;
+		top: 50px;
+		z-index: 99;
+	  }
+
+	  .fk {
+		background-color: #00f;
+	  }
+
+	</style>
+
+  </head>
+  <body>
+
+	<div id='loadBlock'><img alt='loadImg' src=''></div>
+	
+	<div class='container'>
+	  <div class='HEAD'></div>
+	  <div class='BODY'></div>
+	  <div class='FOOT'></div>
+	</div>
+
+	<script>
+
+	  $(function(){
+		let params = {
+		  "schema": urlParams.get('schema'),
+		  "table": urlParams.get('table'),
+		  "qry": urlParams.get('qry'),
+		  "params": urlParams.get('params')
+		};
+
+		//geraTabela(params, ".container .BODY");
+		geraTabela(params, ".container .BODY");
+
+	  });
+
+	  // variaveis
+
+	  const urlParams = new URLSearchParams(window.location.search);
+
+
+	  // metodos
+
+	  // funcao para classificar as colunas
+	  let nameFieldsSorted = function(objRow){
+		var fieldsIndex = [];
+		//var objRow = objJSON[urlParams["table"]][0];
+
+		for(var key in objRow) {
+		  if(objRow.hasOwnProperty(key)) {
+			fieldsIndex.push(key);
+		  }
+		}
+
+		return fieldsIndex.sort(function(a, b) {
+		  return objRow[a].fieldIndex - objRow[b].fieldIndex;
+		});
+	  };
+	  // FIM: nameFieldsSorted
+
+	  let addSelectBoxFields = function(targetStr, arrFields, tableName){
+
+		target = $(targetStr);
+
+		// acrescenta selectBox dos campos
+		target.append(
+		  "<div class='menu'><select id='" + tableName + "Fields'>" +
+			"<option value='-1'>Campos de " + tableName + "</option>" +
+		  "</select></div>"
+		);
+
+		let i = 0;
+		for(field of arrFields){
+		  target.find("select").append(
+			"<option value='" + i++ + "'>" + field + "</option>"
+		  );
+		}
+
+		$("#" + tableName + "Fields").on("change", function(){
+		  $(".col" + $(this).val()).toggleClass("colHide");
+		});
+	  };
+
+	  let geraCabecalho = function(table, objJSON){
+
+		let columnCounter = 0;
+
+		// monta o cabecalho
+		$("#" + table + " thead").append("<tr></tr>");
+		for(field of nameFieldsSorted(objJSON[table][0])){
+		  $("#" + table + " thead tr").last()
+			.append(
+			  "<th class='col col" + (columnCounter) + "'>" +
+				"<button class='toggle-col' id='" + (columnCounter) + "' " +
+					"title='hide column'>" +
+				  "<img class='icon close'>" +
+					"<span class='colName'>" + field + "<span>" +
+				"</button>" +
+			  "</th>"
+			);
+
+		  //columnCounter +=2;
+		  columnCounter++;
+
+		  // preenche colunas da chave estrangeira
+		  //if (1===2){
+		  if (objJSON[table][0][field].fKey !== null){
+			for(
+			  field of nameFieldsSorted(
+				objJSON[table][0][field].fKey.obj
+			  )
+			) {
+			  $("#" + table + " thead tr").last()
+				.append(
+				  "<th class='col col" + (columnCounter) + "'>" +
+					"<button class='fk toggle-col' id='" + (columnCounter) + "' " + 
+						"title='hide column'>" +
+					  "<img class='icon close'>" + field +
+					"</button>" +
+				  "</th>"
+				);
+
+			  //columnCounter +=2;
+			  columnCounter++;
+			}
+		  }
+		}
+
+
+		// define eventLiteners das colunas
+
+		$(".toggle-col").on("click", function(){
+		  if (!$(this).parent().hasClass("col"))
+			return;
+
+		  if ( $(this).attr("id")%2 === 0 ){
+			$(".col" + $(this).attr("id")).toggleClass("colHide");
+			$(".col-0" + (Number($(this).attr("id")) + 1) )
+			  .toggleClass("colHide");
+		  } else {
+			$(".col" + $(this).attr("id")).toggleClass("colHide");
+			$(".col-0" + (Number($(this).attr("id")) - 1) )
+			  .toggleClass("colHide");
+		  }
+		});
+
+
+/*
+		// monta cabeçalhos escondidos ao final
+		columnCounter = 1;
+
+		for(field of nameFieldsSorted(objJSON[table][0])){
+		  $("#" + table + " thead tr").last()
+			.append(
+			  "<th class='col col" + (columnCounter) + " colHide'>" +
+				"<button class='toggle-col' id='" + (columnCounter) + "' " +
+					"title='" + field + "'>" +
+				  "<img class='icon open'>" +
+				"</button>" +
+			  "</th>"
+			);
+
+		  columnCounter +=2;
+
+		  if (objJSON[table][0][field].fKey != null){
+			for(
+			  field of nameFieldsSorted(
+				objJSON[table][0][field].fKey.obj
+			  )
+			){
+			  $("#" + table + " thead tr").last()
+				.append(
+				  "<th class='col col" + (columnCounter) + " colHide'>" +
+					"<button class='toggle-col' id='" + (columnCounter) + "' " +
+						"title='" + field + "'>" +
+					  "<img class='icon open'>" +
+					"</button>" +
+				  "</th>"
+				);
+
+			  columnCounter +=2;
+			}
+		  }
+		}
+*/
+
+
+		// adiciona campo de pesquisa
+		$(".container > .HEAD").append(
+		  "<nav class='demo'>" +
+		  "<div class='menu'>" +
+		  "<input placeholder='Pesquisar' id='pesquisar'' />" +
+		  "</div>" +
+		  "</nav>"
+		);
+
+		$(".container > .HEAD .demo")
+		  .css("background-color", "rgba(0,0,0,0.5)");
+
+		$(".container > .HEAD #pesquisar").on("keyup", function(){
+		  filter = $(this).val().toLowerCase();
+		  tr =  $(objContainer + " #" + table + " tr");
+
+		  for (i = 0; i < tr.length; i++) {
+			if ($(tr[i]).find("th").length > 0)
+			  continue;
+
+			if (tr[i]) {
+			  txtValue = tr[i].textContent || tr[i].innerText;
+			  if (txtValue.toLowerCase().indexOf(filter) > -1)
+				tr[i].style.display = "";
+			  else
+				tr[i].style.display = "none";
+			}
+		  }
+		});
+
+		addSelectBoxFields(
+		  ".container > .HEAD .demo", 
+		  nameFieldsSorted(objJSON[table][0]),
+		  table
+		);
+
+	  };
+
+	  let preencheTabela = function(table,objJSON, schema ){
+
+		$("#" + table + " tbody").html("");
+
+		// preenche tabela
+		for(obj of objJSON[table]){
+
+		  columnCounter = 0;
+
+		  $("#" + table + " tbody").append("<tr></tr>");
+
+		  for(field of nameFieldsSorted(obj)){
+
+			if (obj[field].fieldValue === undefined)
+			  obj[field].fieldValue = "";
+
+			if(obj[field].pkField === true){
+			  // preenche PK - primeira coluna
+				$("#" + table + " tbody tr").last()
+				  .append(
+					"<td class='col" + (columnCounter) + "" + 
+					  ( ( $(".col.col" + columnCounter).hasClass("colHide") )?
+						" colHide":"" )+ "'>" +
+					  "<a class='link-registro' " +
+						"href='" +
+						  "?schema=" + schema + 
+						  "&table=" + table + 
+						  "&qry=" + "select" + 
+						  "&params=" + obj[field].fieldValue + "," +
+						  "'"+
+					  ">" +
+						obj[field].fieldValue +
+					  "</a>" +
+					"</td>"
+				  );
+
+			  columnCounter++;
+
+			} else {
+			  // preenche coluna normal
+			  $("#" + table + " tbody tr").last()
+				.append(
+				  "<td class='col" + (columnCounter) + "" + 
+					( ( $(".col.col" + columnCounter).hasClass("colHide") )?
+					  " colHide":"" )+ "'>" + 
+					obj[field].fieldValue.replace("\n", "<br>") + 
+				  "</td>"
+				);
+
+			  columnCounter++;
+
+			  // preenche colunas da chave estrangeira
+			  //if (1===2){
+			  if (obj[field].fKey !== null){
+							for(fieldFK of nameFieldsSorted(obj[field].fKey.obj)){
+								$("#" + table + " tbody tr").last().append(
+									"<td class='col" + (columnCounter) + "" + 
+										( ( $(".col.col" + columnCounter).hasClass("colHide") )?
+											" colHide":"" )+ "'>" +
+										obj[field].fKey.obj[fieldFK]
+											.fieldValue.replace("\n", "<br>") + 
+									"</td>"
+								);
+
+								columnCounter++;
+							}
+						}
+			}
+		  }
+
+		}
+	  };
+
+	  let geraBotoesPaginacao = function(objJSON, paginaAtual){
+
+		// gera botões de navegação
+		if (objJSON["paginacao"] === undefined)
+		  return;
+
+		$(".FOOT").css("text-align", "center");
+
+		if ($(".FOOT .paginas").length === 0)
+		  $(".FOOT").append("<div class='paginas'></div>");
+
+		$(".FOOT .paginas").html("");
+		//console.log(objJSON["paginacao"])
+
+		let ttlPaginas = objJSON["paginacao"].ttlPaginas;
+		ttlPaginas = 5;
+
+		pgInicio = 0;
+		pgfinal = pgInicio + ttlPaginas;
+
+		if (paginaAtual > (pgfinal - Math.floor(ttlPaginas/2) )){
+		  pgInicio = paginaAtual - Math.floor(ttlPaginas/2);
+		  pgfinal = pgInicio + ttlPaginas;
+		}
+
+		if (paginaAtual > (objJSON["paginacao"].ttlPaginas - ttlPaginas )){
+		  pgfinal = objJSON["paginacao"].ttlPaginas;
+		  pgInicio = ( (pgfinal - ttlPaginas) < 0 )?0:pgfinal - ttlPaginas;
+		}
+
+		for(var i = pgInicio;i<pgfinal;i++){
+		  $(".FOOT .paginas")
+			.append(
+			  "<button id='" + i + "' class='paginacaoBtn'>" + 
+				(i+1) + 
+			  "</button>"
+			);
+		}
+
+		  $(".FOOT .paginas")
+			.prepend("<button id='prev' class='paginacaoBtn'><</button>")
+			.prepend("<button id='first' class='paginacaoBtn'>|<<</button>")
+			.append("<button id='next' class='paginacaoBtn'>></button>")
+			.append("<button id='last' class='paginacaoBtn'>>>|</button>");
+
+		  $(".FOOT .paginas #" + paginaAtual + ".paginacaoBtn").addClass("success")
+
+		  $(".paginacaoBtn").on("click", function(){
+
+			let pagNum = 0;
+
+			if ($(this).attr("id") === "prev")
+			  pagNum = (paginaAtual>0)?paginaAtual-1:0;
+			else if ($(this).attr("id") === "first")
+			  pagNum = 0;
+			else if ($(this).attr("id") === "next")
+			  pagNum = ( ++paginaAtual < objJSON["paginacao"].ttlPaginas )?paginaAtual:objJSON["paginacao"].ttlPaginas - 1;
+			else if ($(this).attr("id") === "last")
+			  pagNum = objJSON["paginacao"].ttlPaginas - 1;
+			else
+			  pagNum = Number.parseInt($(this).attr("id"));
+
+			let params = {
+			  "schema": urlParams.get('schema'),
+			  "table": urlParams.get('table'),
+			  "qry": urlParams.get('qry'),
+			  "params": urlParams.get('params'),
+			  "pag": pagNum
+			};
+
+			geraBotoesPaginacao(objJSON, pagNum);
+			updTabela(params);
+
+		  });
+		};
+
+	  let geraTabela = function(urlParams, objContainer){
+
+		let objJSON = {};
+		let schema = urlParams["schema"];
+		let table = urlParams["table"];
+		let qry = urlParams["qry"];
+		let params = urlParams["params"];
+		let pag = (urlParams["pag"]!==undefined)?urlParams["pag"]:0;
+
+		let url = "/javaWebFramework/manager/models/json.jsp" +
+		  "?schema=" + schema + 
+		  "&table=" + table + 
+		  "&qry=" + qry;
+		  "&pag=" + pag;
+
+		if(urlParams["params"] !== null)
+		  url+="&params=" + params;
+
+		$("#loadBlock").css("display", "block");
+
+		$.getJSON( url, function( data ) {
+		  objJSON = data;
+		})
+		  .done( function() {
+			//
+		  })
+		  .fail(function(xhr, ajaxOptions, thrownError) {
+			console.log( "error: " + thrownError );
+			//$("#loadBlock").css("display", "none");
+			//alert( "error" );
+		  })
+		  .always(function() {
+			//alert( "finished" );
+
+			let container = $(objContainer + "");
+			container.html("");
+
+			$(document).prop("title", "LISTA " + schema + "." + table);
+
+			container
+			  .html("")
+			  .append(
+				"<table id='" + table + "'>" +
+				"<thead class='cabecalho-fixo'></thead>" +
+			    "<tbody></tbody>" +
+				"<tfoot></tfoot>" +
+				"</table>"
+			  );
+
+			geraCabecalho(table, objJSON);
+			preencheTabela(table, objJSON, schema);
+
+			geraBotoesPaginacao(objJSON, pag);
+
+			$(".link-registro").on("click", function(event){
+			  event.preventDefault();
+			  window.open("/javaWebFramework/manager/models/form.html" + $(this).attr("href"));
+			});
+
+			$("#loadBlock").css("display", "none");
+		  });
+		};
+
+	  let updTabela = function(urlParams){
+
+		let objJSON = {};
+		let schema = urlParams["schema"];
+		let table = urlParams["table"];
+		let qry = urlParams["qry"];
+		let params = urlParams["params"];
+		let pag = (urlParams["pag"]!==undefined)?urlParams["pag"]:0;
+
+		let url = "/javaWebFramework/manager/models/json.jsp" +
+		  "?schema=" + schema + 
+		  "&table=" + table + 
+		  "&qry=" + qry +
+		  "&pag=" + pag;
+
+		if(urlParams["params"] !== null)
+		  url+="&params=" + params;
+
+		$("#loadBlock").css("display", "block");
+		$("#" + table + " tbody").html("");
+
+		$.getJSON( url, function( data ) {
+				objJSON = data;
+			})
+		  .done( function() {
+			//
+		  })
+		  .fail(function(xhr, ajaxOptions, thrownError) {
+			console.log( "error: " + thrownError );
+			//alert( "error" );
+		  })
+		  .always(function() {
+			//alert( "finished" );
+
+			//let container = $(objContainer + "");
+			//container.html("");
+
+			preencheTabela(table, objJSON, schema);
+
+			$(".link-registro").on("click", function(event){
+			  event.preventDefault();
+			  window.open("/javaWebFramework/manager/models/form.html" + $(this).attr("href"));
+			});
+
+			$("#loadBlock").css("display", "none");
+
+		  });
+	  };
+
+	</script>
+  </body>
+</html>
